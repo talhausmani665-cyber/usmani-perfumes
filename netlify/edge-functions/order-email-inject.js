@@ -26,11 +26,11 @@ export default async (request, context) => {
       const items=[];
       if(productBox){
         productBox.innerHTML.split('<br>').forEach(line=>{
-          const m=line.match(/^(.*?)\\s*[×x]\\s*(\\d+)\\s*[—-]\\s*(.+)$/);
+          const m=line.match(/^(.*?)\s*[×x]\s*(\d+)\s*[—-]\s*(.+)$/);
           if(m) items.push({name:m[1].trim(),qty:Number(m[2]),price:m[3].trim()});
         });
       }
-      const totalText=summary?summary.textContent.match(/Product Total:\\s*Rs\\.\\s*([0-9,]+)/i):null;
+      const totalText=summary?summary.textContent.match(/Product Total:\s*Rs\.\s*([0-9,]+)/i):null;
       const total=totalText?Number(totalText[1].replace(/,/g,'')):0;
       const order={
         orderId:'UP-'+Date.now().toString(36).toUpperCase(),
@@ -59,7 +59,7 @@ export default async (request, context) => {
 })();
 </script>`;
 
-  const injected = html.replace(/<\\/body>/i, script + "\\n</body>");
+  const injected = html.replace(/<\/body>/i, script + "\n</body>");
   const headers = new Headers(response.headers);
   return new Response(injected, {
     status: response.status,
