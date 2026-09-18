@@ -403,5 +403,63 @@ body{background:#080808;color:#fff;position:relative;font-family:Poppins,sans-se
  });
 })();
 </script>
+<script id="vercel-order-submit-fix">
+(function(){
+  const form=document.getElementById('checkoutForm');
+  const checkout=document.getElementById('checkoutBackdrop');
+  const summary=document.getElementById('checkoutSummary');
+  if(!form) return;
+
+  form.addEventListener('submit',async function(e){
+    e.preventDefault();
+    e.stopImmediatePropagation();
+
+    const get=id=>document.getElementById(id)?.value.trim()||'';
+    const name=get('customerName'),phone=get('customerPhone'),email=get('customerEmail'),
+      city=get('customerCity'),area=get('customerArea'),address=get('customerAddress'),
+      payment=get('paymentMethod'),notes=get('orderNotes');
+
+    if(!name||!phone||!email||!city||!area||!address){
+      alert('Please complete all required fields.');
+      return;
+    }
+
+    const submit=form.querySelector('.checkout-submit');
+    const oldText=submit?.textContent||'Place Order';
+    if(submit){submit.disabled=true;submit.textContent='Sending Order...';}
+
+    const items=window.__usmaniCheckoutItems||[];
+    const total=items.reduce((sum,x)=>sum+(Number(String(x.price).replace(/[^0-9]/g,''))*x.qty),0);
+    const orderId='UP-'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'-'+Math.floor(1000+Math.random()*9000);
+
+    const order={orderId,name,phone,email,city,area,address,payment,notes,items,total,createdAt:new Date().toISOString()};
+
+    try{
+      const response=await fetch('/api/order',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(order)
+      });
+      const result=await response.json().catch(()=>({}));
+      if(!response.ok) throw new Error(result.error||'Order email could not be sent.');
+
+      localStorage.setItem('usmaniLastOrder',JSON.stringify(order));
+      summary.innerHTML='<b>Order Summary</b><div style="margin-top:8px">'+items.map(x=>x.name+' × '+x.qty+' — '+x.price).join('<br>')+'</div><div style="margin-top:10px;color:#f5d76e;font-weight:800">Product Total: Rs. '+total.toLocaleString()+'</div>';
+
+      document.querySelector('.checkout-body').innerHTML='<div style="text-align:center;padding:25px 10px"><div style="font-size:54px">✅</div><h2 style="color:#f5d76e;margin:10px 0">Order Received!</h2><p style="color:#bbb">Your order has been received and the shop has been notified by email.</p><div style="margin:20px 0;padding:18px;border:1px solid rgba(212,175,55,.35);border-radius:14px;background:#151515;text-align:left"><p><b>Order ID:</b> '+orderId+'</p><p style="margin-top:8px"><b>Customer:</b> '+name+'</p><p style="margin-top:8px"><b>Phone:</b> '+phone+'</p><p style="margin-top:8px"><b>Products:</b><br>'+items.map(x=>x.name+' × '+x.qty+' — '+x.price).join('<br>')+'</p><p style="margin-top:8px"><b>Product Total:</b> Rs. '+total.toLocaleString()+'</p><p style="margin-top:8px;color:#aaa">Delivery charges depend on city/area. Estimated delivery: 3–5 days.</p></div><p style="color:#aaa;font-size:13px">Please keep your Order ID for order status and support.</p><div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px"><button id="doneOrder" class="checkout-submit" type="button">Close</button><a class="checkout-submit" style="text-decoration:none;display:inline-block" target="_blank" href="https://wa.me/923114790010?text='+encodeURIComponent('Assalamu Alaikum, I placed website order '+orderId+'. Customer: '+name+'. Phone: '+phone+'. Product Total: Rs. '+total.toLocaleString())+'">WhatsApp Order Status</a></div></div>';
+      document.getElementById('doneOrder').onclick=()=>checkout.classList.remove('open');
+    }catch(err){
+      alert('Order email failed. Please try again. '+err.message);
+      if(submit){submit.disabled=false;submit.textContent=oldText;}
+    }
+  },true);
+
+  const originalOpenCheckout=window.openCheckout;
+  window.openCheckout=function(items){
+    window.__usmaniCheckoutItems=items||[];
+    if(originalOpenCheckout) originalOpenCheckout(items);
+  };
+})();
+</script>
 </body>
 </html>
