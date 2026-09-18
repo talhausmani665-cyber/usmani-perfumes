@@ -21,6 +21,23 @@ export default async function handler(req, res) {
 
   try {
     const body = typeof req.body === "string" ? JSON.parse(req.body) : (req.body || {});
+
+    if (body.type === "review") {
+      const reviewer = String(body.name ?? "").trim();
+      const review = String(body.review ?? "").trim();
+      const rating = Number(body.rating) || 0;
+      if (!reviewer || !review || rating < 1 || rating > 5) {
+        return res.status(400).json({ error: "Please provide name, review and a rating from 1 to 5." });
+      }
+      const html = `<!doctype html><html><body style="font-family:Arial,sans-serif;color:#222"><h2>New Usmani Perfumes Review</h2><p><b>Name:</b> ${esc(reviewer)}<br><b>Rating:</b> ${rating}/5<br><b>Review:</b> ${esc(review)}</p></body></html>`;
+      const resend = await fetch("https://api.resend.com/emails", {
+        method: "POST", headers: { "Authorization": "Bearer " + process.env.RESEND_API_KEY, "Content-Type": "application/json" },
+        body: JSON.stringify({ from: FROM_EMAIL, to: [ADMIN_EMAIL], subject: "New Customer Review — Usmani Perfumes", html, text: "New Customer Review\\nName: " + reviewer + "\\nRating: " + rating + "/5\\nReview: " + review })
+      });
+      const result = await resend.json().catch(() => ({}));
+      if (!resend.ok) { console.error("Resend review error", result); return res.status(502).json({ error: "Email provider rejected the review." }); }
+      return res.status(200).json({ ok: true, emailId: result.id });
+    }
     const required = ["orderId","name","phone","email","city","area","address"];
     for (const field of required) {
       if (!String(body[field] ?? "").trim()) {
