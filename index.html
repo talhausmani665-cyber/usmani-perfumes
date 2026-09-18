@@ -267,10 +267,26 @@ body{background:#080808;color:#fff;position:relative;font-family:Poppins,sans-se
 
 <section class="section" id="reviews">
   <div class="section-title"><h2>Customer Reviews</h2><p>What fragrance lovers are saying.</p></div>
-  <div class="review-grid">
+  <div class="review-rating-summary">Share your experience with Usmani Perfumes.</div>
+  <div class="review-grid" id="reviewGrid">
     <div class="review"><div class="stars">★★★★★</div><p>Beautiful fragrance and a premium presentation. The scent lasts really well.</p><div class="customer">— Happy Customer</div></div>
     <div class="review"><div class="stars">★★★★★</div><p>Vakur looks amazing and the ordering process on WhatsApp was very easy.</p><div class="customer">— Verified Buyer</div></div>
     <div class="review"><div class="stars">★★★★★</div><p>Huma has such an elegant feel. Great option for gifting too.</p><div class="customer">— Happy Customer</div></div>
+  </div>
+  <div class="review-form-box">
+    <h3 style="color:#f5d76e;margin-bottom:15px">Write a Review</h3>
+    <form id="reviewForm" class="review-form-grid">
+      <div><input id="reviewName" required maxlength="80" placeholder="Your name"></div>
+      <div class="rating-picker" aria-label="Rating">
+        <input id="rating5" type="radio" name="rating" value="5" required><label for="rating5">★</label>
+        <input id="rating4" type="radio" name="rating" value="4"><label for="rating4">★</label>
+        <input id="rating3" type="radio" name="rating" value="3"><label for="rating3">★</label>
+        <input id="rating2" type="radio" name="rating" value="2"><label for="rating2">★</label>
+        <input id="rating1" type="radio" name="rating" value="1"><label for="rating1">★</label>
+      </div>
+      <div class="full"><textarea id="reviewText" required maxlength="1000" placeholder="Tell us about your fragrance..."></textarea></div>
+      <div class="full"><button class="review-submit" type="submit">Submit Review</button><div id="reviewMessage" class="review-message"></div></div>
+    </form>
   </div>
 </section>
 
@@ -289,7 +305,7 @@ body{background:#080808;color:#fff;position:relative;font-family:Poppins,sans-se
   <div class="footer-logo">USMANI PERFUMES</div>
   <p>Premium Luxury Fragrances & Attars | COD Available | Delivery 3–5 Days</p>
   <div class="socials">
-    <a href="#" target="_blank">Facebook</a><a href="#" target="_blank">Instagram</a>
+    <a href="https://www.facebook.com/share/19S4WkGr7f/" target="_blank" rel="noopener noreferrer">Facebook</a><a href="https://www.instagram.com/usmani_perfumes/" target="_blank" rel="noopener noreferrer">Instagram</a>
     <a href="https://wa.me/923114790010" target="_blank">WhatsApp</a>
   </div>
   <p style="margin-top:25px">©️ 2026 Usmani Perfumes. All Rights Reserved.</p>
@@ -459,6 +475,27 @@ body{background:#080808;color:#fff;position:relative;font-family:Poppins,sans-se
     window.__usmaniCheckoutItems=items||[];
     if(originalOpenCheckout) originalOpenCheckout(items);
   };
+})();
+</script>
+<script id="review-form-js">
+(function(){
+ const form=document.getElementById('reviewForm'); if(!form)return;
+ form.addEventListener('submit',async function(e){
+  e.preventDefault();
+  const btn=form.querySelector('.review-submit'),msg=document.getElementById('reviewMessage');
+  const name=document.getElementById('reviewName').value.trim(),review=document.getElementById('reviewText').value.trim(),rating=Number(form.querySelector('input[name="rating"]:checked')?.value||0);
+  if(!name||!review||!rating){msg.textContent='Please enter your name, review and rating.';return;}
+  btn.disabled=true;btn.textContent='Submitting...';msg.textContent='';
+  try{
+   const res=await fetch('/api/order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'review',name,review,rating})});
+   const data=await res.json().catch(()=>({}));
+   if(!res.ok)throw new Error(data.error||'Could not submit review.');
+   const card=document.createElement('div');card.className='review';card.innerHTML='<div class="stars">'+('★'.repeat(rating))+'<span style="color:#555">'+('★'.repeat(5-rating))+'</span></div><p></p><div class="customer"></div>';
+   card.querySelector('p').textContent=review;card.querySelector('.customer').textContent='— '+name;
+   document.getElementById('reviewGrid').prepend(card);form.reset();msg.textContent='Thank you! Your review has been submitted.';
+  }catch(err){msg.textContent=err.message;}
+  finally{btn.disabled=false;btn.textContent='Submit Review';}
+ });
 })();
 </script>
 </body>
